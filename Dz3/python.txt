@@ -1,0 +1,91 @@
+import pandas as pd
+file = 'CarPrice_Assignment.csv'
+df_auto = pd.read_csv(file)
+pd.set_option('display.max_columns', None)
+df_auto.head()
+
+df_auto.shape
+
+df_auto.info()
+
+df_auto.describe()
+
+df_auto = df_auto.drop('car_ID',axis=1)
+
+df_auto.head()
+
+df_auto.dtypes
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(style='darkgrid')
+plt.rcParams['figure.figsize'] = [20,20]
+
+sns.pairplot(df_auto)
+
+sns.heatmap(df_auto.corr()[['price']], annot = True, cmap = 'coolwarm')
+
+sig_col = ['price','carwidth','carlength','curbweight', 'enginesize','horsepower','citympg', 'highwaympg']
+df_auto = df_auto[sig_col]
+df_auto.head()
+
+import numpy as np
+from sklearn.model_selection import train_test_split
+np.random.seed(0)
+df_train, df_test = train_test_split(df_auto, train_size = 0.7, test_size = 0.3, random_state = 100)
+df_train.head()
+
+fig,axes = plt.subplots(2,4,figsize=(18,15))
+plt.subplot(2,4,1)
+sns.scatterplot(x='carwidth', y='price' ,data=df_auto)
+plt.subplot(2,4,2)
+sns.scatterplot(x='carlength', y='price' ,data=df_auto)
+plt.subplot(2,4,3)
+sns.scatterplot(x='curbweight', y='price' ,data=df_auto)
+plt.subplot(2,4,4)
+sns.scatterplot(x='enginesize', y='price' ,data=df_auto)
+plt.subplot(2,4,5)
+sns.scatterplot(x='horsepower', y='price' ,data=df_auto)
+plt.subplot(2,4,6)
+sns.scatterplot(x='citympg', y='price' ,data=df_auto)
+plt.subplot(2,4,7)
+sns.scatterplot(x='highwaympg', y='price' ,data=df_auto)
+
+y_train = df_train['price']
+x_train = df_train['enginesize']
+
+import statsmodels.api as sm
+x_train1 = sm.add_constant(x_train)
+lr_1 = sm.OLS(y_train, x_train1).fit()
+lr_1.params
+
+plt.scatter(x_train1.iloc[:, 1], y_train)
+plt.plot(x_train1.iloc[:, 1], lr_1.params[1]*x_train1.iloc[:, 1]+lr_1.params[0], 'r')
+
+print(lr_1.summary())
+
+x_train2 = df_train[['enginesize','highwaympg']]
+lr_2 = sm.OLS(y_train, x_train2).fit()
+lr_2.params
+print(lr_2.summary())
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+xxx = x_train2
+vif = pd.DataFrame()
+vif['Features'] = xxx.columns
+vif['VIF'] = [variance_inflation_factor(xxx.values, i) for i in range(xxx.shape[1])]
+vif['VIF'] = round(vif['VIF'], 2)
+vif
+
+y_pred = lr_2.predict(x_train2)
+fig = plt.figure()
+sns.distplot((y_train - y_pred), bins = 10)
+fig.suptitle('Error Analysis')                   
+plt.xlabel('Errors')
+
+from sklearn.metrics import r2_score
+y_test = df_test['price']
+x_test = df_test[['enginesize','highwaympg']]
+y_predd = lr_2.predict(x_test)
+r2_score(y_test, y_predd)
+
